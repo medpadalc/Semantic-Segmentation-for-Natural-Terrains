@@ -64,8 +64,17 @@ class RUGDDataset(Dataset):
     }
 
 
-    def __init__(self, split, root_dir='/content/', tform=None):
-        self.im_dir = os.path.join(root_dir, 'RUGD_frames-with-annotations')
+    def __init__(self, split, root_dir='data/rugd', tform=None):
+        # self.im_dir = os.path.join(root_dir, 'RUGD_frames-with-annotations')
+        frames_zip = os.path.join(data_dir, "RUGD_frames-with-annotations.zip")
+        frames_url = "http://rugd.vision/data/RUGD_frames-with-annotations.zip"
+        
+        if not os.path.exists(frames_zip):
+            urllib.request.urlretrieve(frames_url, frames_zip)
+        
+        with zipfile.ZipFile(frames_zip, "r") as zf:
+            zf.extractall(data_dir)
+    
         self.label_dir = os.path.join(root_dir, 'RUGD_annotations')
         self.split = split
         self.tform = tform
@@ -102,13 +111,14 @@ class RUGDDataset(Dataset):
 
     def create_path_list(self):
         # subdirs = [f.path for f in os.scandir(self.im_dir) if f.is_dir()]
-        subdirs = [
-            os.path.join(self.im_dir, subdir)
-            for subdir in RUGDDataset.SUBDIR_SPLIT[self.split]
-        ]
-        paths = []
-        for dir in subdirs:
-            paths_ = glob(os.path.join(self.im_dir, dir, '*.png'))
+        # subdirs = [
+        #     os.path.join(self.im_dir, subdir)
+        #     for subdir in RUGDDataset.SUBDIR_SPLIT[self.split]
+        # ]
+        # paths = []
+        # for dir in subdirs:
+        #     paths_ = glob(os.path.join(self.im_dir, dir, '*.png'))
+        paths_ = glob(os.path.join(dir, '*.png'))
             for path in paths_:
                 fname = os.path.basename(path)
 
