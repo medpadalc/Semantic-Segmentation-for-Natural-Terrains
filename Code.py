@@ -1,18 +1,4 @@
 # Set-Up:
-
-%matplotlib inline
-%config InlineBackend.figure_format='retina'
-
-from google.colab import drive
-drive.mount('/content/drive')
-
-root_dir = '/content/drive/MyDrive/Medhya Padmanabhuni - Winter I 2025/project'
-
-
-!unzip "{root_dir}/RUGD_annotations.zip" -d "/content/"
-
-
-
 import os
 import random
 from glob import glob
@@ -29,6 +15,22 @@ from torchvision.io.image import decode_image
 from torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights
 from torchvision.transforms.functional import to_pil_image
 from tqdm.auto import tqdm
+
+import os
+import zipfile
+import urllib.request
+
+data_dir = "data/rugd"
+os.makedirs(data_dir, exist_ok=True)
+
+annotations_zip = os.path.join(data_dir, "RUGD_annotations.zip")
+annotations_url = "http://rugd.vision/data/RUGD_annotations.zip"
+
+if not os.path.exists(annotations_zip):
+    urllib.request.urlretrieve(annotations_url, annotations_zip)
+
+with zipfile.ZipFile(annotations_zip, "r") as zf:
+    zf.extractall(data_dir)
 
 # Determine if this Colab instand has access to a GPU (CUDA), which makes ML code faster
 device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
@@ -99,7 +101,6 @@ class RUGDDataset(Dataset):
             return self.int_to_class_map[color_int]
 
     def create_path_list(self):
-        # todo: make sure file exists in both directories?
         # subdirs = [f.path for f in os.scandir(self.im_dir) if f.is_dir()]
         subdirs = [
             os.path.join(self.im_dir, subdir)
@@ -222,9 +223,6 @@ criteria = [
     # classwise_acc_fn,
     accuracy_fn,
     # torch.nn.CrossEntropyLoss(),
-    ######## TODO: Q2 in the Week 5 Assignment ###########
-    # add more losses/metrics here!
-    ######################################################
 ]
 running_criteria = [0 for _ in criteria]
 
@@ -258,9 +256,7 @@ for i, batch in enumerate(tqdm(test_loader)):
     pred = resize_fn(pred)
     pred_label = torch.argmax(pred, axis=1)
 
-    ######### TODO: Q1 in the Week 5 Assignment ##########
     pred_label = convert_to_rugd_labels(pred_label)
-    ######################################################
 
     running_criteria = [
         c_val + criterion(pred_label, label.long())
@@ -274,8 +270,6 @@ running_criteria = [c_val / len(train_loader) for c_val in running_criteria]
 
 from segmentation_models_pytorch.losses import DiceLoss
 from segmentation_models_pytorch.losses import FocalLoss
-
-
 
 
 
@@ -425,7 +419,6 @@ val_loader = DataLoader(
 #     ds, batch_size=16, shuffle=True,
 # )
 
-# TODO: change `TerrainModel` to your custom model
 # model = CustomModel_1(KERNEL_SIZE1).to(device) # 1 layers
 model = CustomModel_3(KERNEL_SIZE3).to(device) # 3 layers Final Model
 # model = CustomModel_5(KERNEL_SIZE3).to(device) # 5 layers
@@ -441,7 +434,7 @@ for param in model.pretrained_model.aux_classifier[-1].parameters():
 #####################################
 
 optimizer = torch.optim.Adam(model.parameters(), lr=LR)
-loss_fn = nn.CrossEntropyLoss() #DiceLoss('multiclass') #nn.CrossEntropyLoss()
+loss_fn = nn.CrossEntropyLoss()
 # loss_fn2 = DiceLoss('multiclass') # ADDED FOR DICE LOSS
 loss_fn2 = FocalLoss('multiclass') # ADDED FOR FOCAL LOSS
 
