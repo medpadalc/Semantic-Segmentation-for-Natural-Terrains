@@ -176,8 +176,6 @@ def convert_to_rugd_labels(pascal_labels):
     # ex. if PASCAL class bike = 2 and RUGD class bike = 4, convert all 2s to 4s
     # if PASCAL class isn't present, then convert it to the RUGD void class
 
-    ######### TODO: Q1 in the Week 5 Assignment ##########
-    ######################################################
     rugd_labels = torch.zeros_like(pascal_labels)
 
     for pascal_id, rugd_id in PASCAL_TO_RUGD.items():
