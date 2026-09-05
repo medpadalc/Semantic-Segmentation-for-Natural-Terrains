@@ -2,7 +2,6 @@
 import os
 import random
 from glob import glob
-
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -15,8 +14,6 @@ from torchvision.io.image import decode_image
 from torchvision.models.segmentation import deeplabv3_resnet50, DeepLabV3_ResNet50_Weights
 from torchvision.transforms.functional import to_pil_image
 from tqdm.auto import tqdm
-
-import os
 import zipfile
 import urllib.request
 
@@ -39,9 +36,6 @@ device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cp
 np.random.seed(42)
 torch.manual_seed(42)
 random.seed(42)
-
-
-
 
 class RUGDDataset(Dataset):
 
@@ -143,17 +137,9 @@ class RUGDDataset(Dataset):
             im = self.tform(im)
         return im, class_label
 
-
-
-
-
 !pip install -U segmentation-models-pytorch
 
-
-
-
 # Benchmarking
-
 PASCAL_TO_RUGD = {
     0: 17,   # person → person
     1: 16,   # bicycle → bicycle
@@ -193,13 +179,6 @@ def convert_to_rugd_labels(pascal_labels):
 
     return rugd_labels
 
-
-
-
-
-
-
-
 def accuracy_fn(pred, target):
     num_correct = ((pred == target) & (pred == 0)).sum()
     if (pred == 0).sum() == 0:
@@ -217,10 +196,6 @@ def classwise_acc_fn(pred, target, num_classes=25):
             acc = 0
         class_accs.append(acc)
     return torch.tensor(class_accs)
-
-
-
-
 
 weights = DeepLabV3_ResNet50_Weights.DEFAULT
 preprocess = weights.transforms()
@@ -243,15 +218,7 @@ test_loader = DataLoader(
     ds, batch_size=16, shuffle=True,
 )
 
-
-
-
-# Evaluation loop
-
-
-# all_pred_labels = []
-# all_target_labels = []
-
+# Evaluation loop for benchmarking
 for i, batch in enumerate(tqdm(test_loader)):
     im, label = batch
     im = im.to(device)
@@ -272,21 +239,13 @@ for i, batch in enumerate(tqdm(test_loader)):
     ]
 running_criteria = [c_val / len(train_loader) for c_val in running_criteria]
 
-
-
 # Model
-
 from segmentation_models_pytorch.losses import DiceLoss
 from segmentation_models_pytorch.losses import FocalLoss
-
-
 
 weights = DeepLabV3_ResNet50_Weights.DEFAULT
 PREPROCESS_FN = weights.transforms()
 RESIZE_FN = torchvision.transforms.Resize((550, 688))
-
-
-
 
 def validation_acc(val_loader, model):
     running_acc = 0
@@ -306,8 +265,6 @@ def validation_acc(val_loader, model):
     model.train()
     return running_acc / len(val_loader)
 
-
-
 # One Layer Model
 class CustomModel_1(nn.Module):
     def __init__(self, kernel_size=1):
@@ -321,9 +278,7 @@ class CustomModel_1(nn.Module):
         y = self.pretrained_model(x)['out']
         return self.final_layer(y)
 
-
-
-# Final Model
+# FINAL MODEL
 class CustomModel_3(nn.Module):
     def __init__(self, kernel_size=1):
         super().__init__()
@@ -351,8 +306,6 @@ class CustomModel_3(nn.Module):
         y = self.relu(y)
 
         return self.final_layer(y)
-
-
 
 # Five Layer Model
 class CustomModel_5(nn.Module):
@@ -394,23 +347,19 @@ class CustomModel_5(nn.Module):
         y = self.relu(y)
 
         return self.final_layer(y)
-     
-
-
-
-
 
 # Hyperparameters ################
 # LR = 0.0008
+# Final Model:
 BATCH_SIZE = 30
 NUM_EPOCHS = 40
-KERNEL_SIZE1 = 11
+KERNEL_SIZE3 = 5
+LR = 0.0001 # for different kernel size!
 
 # LR = 0.0006
-LR = 0.0001 # for different kernel size!
 # BATCH_SIZE = 35
 # NUM_EPOCHS = 10
-KERNEL_SIZE3 = 5
+KERNEL_SIZE1 = 11
 ##################################
 
 train_loader = DataLoader(
@@ -430,7 +379,7 @@ val_loader = DataLoader(
 # model = CustomModel_1(KERNEL_SIZE1).to(device) # 1 layers
 model = CustomModel_3(KERNEL_SIZE3).to(device) # 3 layers Final Model
 # model = CustomModel_5(KERNEL_SIZE3).to(device) # 5 layers
-model = OnlyModel(KERNEL_SIZE1).to(device) # 0 layers
+# model = OnlyModel(KERNEL_SIZE1).to(device) # 0 layers
 
 #### DO NOT change the code below ###
 for param in model.pretrained_model.parameters():
@@ -445,10 +394,6 @@ optimizer = torch.optim.Adam(model.parameters(), lr=LR)
 loss_fn = nn.CrossEntropyLoss()
 # loss_fn2 = DiceLoss('multiclass') # ADDED FOR DICE LOSS
 loss_fn2 = FocalLoss('multiclass') # ADDED FOR FOCAL LOSS
-
-
-
-
 
 losses = []
 accs = []
@@ -485,7 +430,7 @@ for epoch in range(NUM_EPOCHS):
         running_loss += loss.item()
         pbar.set_description(f'{pbar_prefix} loss={running_loss / (i + 1):.4f}')
 
-        # Display the first image and its prediction for the first batch of the first epoch
+        # Displays example image and its prediction
         if epoch == 2:
             # Detach tensors from GPU and convert to numpy for plotting
             input_image_display = im[0].cpu().permute(1, 2, 0).numpy() # Convert C,H,W to H,W,C
@@ -510,8 +455,6 @@ for epoch in range(NUM_EPOCHS):
     accs.append(acc.item())
     print(acc.item())
 
-
-
 def validation_acc(val_loader, model):
     running_acc = 0
     model.eval()
@@ -532,8 +475,6 @@ def validation_acc(val_loader, model):
 
 validation_acc(test_loader, model)
 
-
-
 # Testing
 ds = RUGDDataset('test')
 test_loader = DataLoader(
@@ -543,9 +484,8 @@ test_loader = DataLoader(
 acc = validation_acc(test_loader, model)
 print(acc)
 
-
-
-
+# to save model weights:
+torch.save(model.state_dict(), "custom_model_3_weights.pth")
 
 # Graphing
 fig, ax = plt.subplots()
@@ -556,4 +496,3 @@ ax2.plot(accs, color='orange')
 ax2.set_ylabel('val acc')
 ax.set_xlabel('epoch')
 fig.legend(['train loss', 'val acc'])
-     
