@@ -58,7 +58,7 @@ import torchvision.transforms as transforms
 import torch
 
 # Load the image
-image_path = r"C:\Users\medpa\Downloads\Research Project\trail-10_00171.png"
+image_path = "trail-13_00016.png"
 image = Image.open(image_path).convert("RGB")
 
 # Preprocess — MUST match whatever preprocessing was used during training
